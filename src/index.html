@@ -100,6 +100,16 @@
       .taskTemplate {
         display: none;
       }
+
+      #debug-info {
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin-top: 20px;
+        font-family: monospace;
+        max-height: 200px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
@@ -134,29 +144,81 @@
         <ul id="completedTaskList" class="task-list">
           <!-- Completed tasks will be added here -->
         </ul>
+
+        <div id="debug-info">
+          <h4>Debug Information</h4>
+          <div id="debug-output"></div>
+        </div>
       </div>
     </div>
 
-    <!-- jQuery -->
+    <!-- jQuery (Load first) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
     <!-- Web3.js -->
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.1/dist/web3.min.js"></script>
-    <!-- Truffle Contract - Updated to use a different CDN -->
-    <script src="https://cdn.jsdelivr.net/gh/trufflesuite/truffle-contract@latest/dist/truffle-contract.min.js"></script>
-    <!-- Make TruffleContract globally available -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    
+    <!-- Load TruffleContract directly from unpkg (more reliable) -->
+    <script src="https://unpkg.com/@truffle/contract@4.3.19/dist/truffle-contract.js"></script>
+
     <script>
-      // Check if TruffleContract is loaded and make it globally available
-      document.addEventListener('DOMContentLoaded', function() {
-        if (typeof TruffleContract !== 'undefined') {
-          window.TruffleContract = TruffleContract;
-          console.log("TruffleContract loaded successfully!");
-        } else {
-          console.error("TruffleContract failed to load!");
-          document.getElementById('error-message').textContent = 'Failed to load TruffleContract library. Please check your internet connection and try again.';
-          document.getElementById('error-message').style.display = 'block';
+      // Create a separate helper for debug output
+      const Debug = {
+        log: function(message) {
+          console.log(message);
+          const debugOutput = document.getElementById('debug-output');
+          if (debugOutput) {
+            const entry = document.createElement('div');
+            entry.textContent = message;
+            debugOutput.appendChild(entry);
+          }
+        },
+        error: function(message) {
+          console.error(message);
+          const debugOutput = document.getElementById('debug-output');
+          if (debugOutput) {
+            const entry = document.createElement('div');
+            entry.textContent = "ERROR: " + message;
+            entry.style.color = 'red';
+            debugOutput.appendChild(entry);
+          }
         }
+      };
+
+      // Add a global error handler to catch script loading issues
+      window.addEventListener('error', function(event) {
+        Debug.error(`Script error in ${event.filename}: ${event.message}`);
+        document.getElementById('error-message').textContent = 
+          `A script error occurred: ${event.message}. Check the debug area for more details.`;
+        document.getElementById('error-message').style.display = 'block';
+      }, true);
+
+      // Check if TruffleContract is loaded when the page is ready
+      $(document).ready(function() {
+        Debug.log("Document ready");
+        
+        // Check Web3 availability
+        if (typeof Web3 !== 'undefined') {
+          Debug.log("Web3 is available");
+        } else {
+          Debug.error("Web3 is NOT available");
+        }
+        
+        // Check TruffleContract availability
+        if (typeof TruffleContract !== 'undefined') {
+          Debug.log("TruffleContract is available");
+          window.TruffleContract = TruffleContract;
+        } else {
+          Debug.error("TruffleContract is NOT available");
+        }
+
+        // Start the application
+        setTimeout(function() {
+          App.load();
+        }, 1000); // Give a bit more time for everything to load
       });
     </script>
+
     <!-- App.js -->
     <script src="app.js"></script>
   </body>

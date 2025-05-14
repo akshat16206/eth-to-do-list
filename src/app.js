@@ -3,233 +3,262 @@ App = {
     contracts: {},
   
     load: async () => {
+      Debug.log("App.load started");
       try {
         await App.loadWeb3()
         await App.loadAccount()
         await App.loadContract()
         await App.render()
+        Debug.log("App initialization completed successfully");
       } catch (error) {
-        console.error("Error during app initialization:", error)
-        $('#error-message').text('Failed to initialize app: ' + error.message).show()
+        Debug.error("Error during app initialization: " + error.message);
+        $('#error-message').text('Failed to initialize app: ' + error.message).show();
       }
     },
   
     // Updated Web3 loading function to work with modern MetaMask
     loadWeb3: async () => {
+      Debug.log("Loading Web3...");
+      
       // Modern dapp browsers...
       if (window.ethereum) {
-        App.web3Provider = window.ethereum
-        window.web3 = new Web3(window.ethereum)
+        App.web3Provider = window.ethereum;
+        window.web3 = new Web3(window.ethereum);
+        Debug.log("Modern ethereum browser detected");
+        
         try {
           // Request account access
-          await window.ethereum.request({ method: 'eth_requestAccounts' })
-          console.log("Connected to MetaMask")
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          Debug.log("Connected to MetaMask");
         } catch (error) {
-          console.error("User denied account access")
-          throw new Error("MetaMask access denied. Please connect your wallet.")
+          Debug.error("User denied account access: " + error.message);
+          throw new Error("MetaMask access denied. Please connect your wallet.");
         }
       }
       // Legacy dapp browsers...
       else if (window.web3) {
-        App.web3Provider = window.web3.currentProvider
-        window.web3 = new Web3(window.web3.currentProvider)
-        console.log("Legacy web3 detected")
+        App.web3Provider = window.web3.currentProvider;
+        window.web3 = new Web3(window.web3.currentProvider);
+        Debug.log("Legacy web3 detected");
       }
       // Non-dapp browsers...
       else {
-        const errorMsg = 'Non-Ethereum browser detected. You should consider trying MetaMask!'
-        console.log(errorMsg)
-        throw new Error(errorMsg)
+        const errorMsg = 'Non-Ethereum browser detected. You should consider trying MetaMask!';
+        Debug.error(errorMsg);
+        throw new Error(errorMsg);
       }
     },
   
     loadAccount: async () => {
+      Debug.log("Loading account...");
+      
       // Updated to use modern web3 accounts method
       try {
-        const accounts = await window.web3.eth.getAccounts()
+        const accounts = await window.web3.eth.getAccounts();
+        Debug.log("Accounts: " + JSON.stringify(accounts));
+        
         if (accounts.length === 0) {
-          throw new Error("No accounts found. Please unlock MetaMask.")
+          Debug.error("No accounts found");
+          throw new Error("No accounts found. Please unlock MetaMask.");
         }
-        App.account = accounts[0]
-        console.log("Account loaded:", App.account)
+        
+        App.account = accounts[0];
+        Debug.log("Account loaded: " + App.account);
       } catch (error) {
-        console.error("Error loading account:", error)
-        throw error
+        Debug.error("Error loading account: " + error.message);
+        throw error;
       }
     },
   
+    // SIMPLIFIED CONTRACT LOADING APPROACH
     loadContract: async () => {
+      Debug.log("Loading contract...");
+      
       try {
-        // Create a JavaScript version of the smart contract
-        const todoList = await $.getJSON('TodoList.json')
-        
-        // Log the current state for debugging
-        console.log("Window TruffleContract:", typeof window.TruffleContract);
-        console.log("Direct TruffleContract:", typeof TruffleContract); 
-        
-        // Try different ways to access TruffleContract
-        let Contract;
-        if (typeof window.TruffleContract !== 'undefined') {
-          Contract = window.TruffleContract;
-          console.log("Using window.TruffleContract");
-        } else if (typeof TruffleContract !== 'undefined') {
-          Contract = TruffleContract;
-          console.log("Using direct TruffleContract");
+        // Check if TruffleContract is available
+        if (typeof TruffleContract === 'undefined') {
+          if (typeof window.TruffleContract !== 'undefined') {
+            Debug.log("Using window.TruffleContract");
+            window.TruffleContract = window.TruffleContract;
+          } else {
+            Debug.error("TruffleContract is not defined");
+            throw new Error("TruffleContract is not defined. Please make sure the library is loaded correctly.");
+          }
         } else {
-          const errorMsg = "TruffleContract is not defined. The library failed to load correctly.";
-          console.error(errorMsg);
-          $('#error-message').text(errorMsg).show();
-          throw new Error(errorMsg);
+          Debug.log("TruffleContract is defined globally");
         }
+  
+        // Create a JavaScript version of the smart contract
+        Debug.log("Fetching TodoList.json");
+        const todoList = await $.getJSON('TodoList.json');
+        Debug.log("TodoList.json loaded");
         
-        App.contracts.TodoList = Contract(todoList);
+        // Create truffle contract
+        const TruffleContractProvider = window.TruffleContract || TruffleContract;
+        App.contracts.TodoList = TruffleContractProvider(todoList);
         App.contracts.TodoList.setProvider(App.web3Provider);
+        Debug.log("Contract provider set");
   
         // Hydrate the smart contract with values from the blockchain
-        try {
-          App.todoList = await App.contracts.TodoList.deployed();
-          
-          if (!App.todoList) {
-            throw new Error("TodoList contract could not be deployed.");
-          }
-          
-          console.log("Contract loaded:", App.todoList.address);
-        } catch (deployError) {
-          console.error("Contract deployment error:", deployError);
-          const errorMsg = "Failed to deploy contract. Make sure the contract is deployed to your blockchain and Metamask is connected to the correct network.";
-          $('#error-message').text(errorMsg).show();
-          throw new Error(errorMsg);
+        Debug.log("Getting deployed contract instance");
+        App.todoList = await App.contracts.TodoList.deployed();
+        
+        if (!App.todoList) {
+          Debug.error("todoList contract was not deployed");
+          throw new Error("TodoList contract could not be deployed.");
         }
+        
+        Debug.log("Contract loaded successfully at address: " + App.todoList.address);
       } catch (error) {
-        console.error("Error loading contract:", error);
+        Debug.error("Error loading contract: " + error.message);
         $('#error-message').text('Contract loading error: ' + error.message).show();
         throw error;
       }
     },
   
     render: async () => {
+      Debug.log("Rendering UI...");
+      
       // Prevent double render
       if (App.loading) {
-        return
+        Debug.log("Already loading, skipping render");
+        return;
       }
   
       // Update app loading state
-      App.setLoading(true)
+      App.setLoading(true);
   
       // Display account address with shortened format for better UI
       const shortenedAccount = App.account ? 
         `${App.account.slice(0, 6)}...${App.account.slice(-4)}` : 
-        'Not connected'
-      $('#account').html(shortenedAccount)
+        'Not connected';
+      $('#account').html(shortenedAccount);
+      Debug.log("Account display updated: " + shortenedAccount);
   
       // Render Tasks
-      await App.renderTasks()
+      await App.renderTasks();
   
       // Update loading state
-      App.setLoading(false)
+      App.setLoading(false);
+      Debug.log("Render complete");
     },
   
     renderTasks: async () => {
+      Debug.log("Rendering tasks...");
+      
       try {
         // Check if todoList is defined before proceeding
         if (!App.todoList) {
-          throw new Error("todoList contract is not properly loaded")
+          Debug.error("todoList contract is not properly loaded");
+          throw new Error("todoList contract is not properly loaded");
         }
         
         // Load the total task count from the blockchain
-        const taskCount = await App.todoList.taskCount()
+        Debug.log("Getting task count");
+        const taskCount = await App.todoList.taskCount();
+        Debug.log("Task count: " + taskCount);
         
         // Clear existing tasks
-        $('#taskList').html('')
-        $('#completedTaskList').html('')
+        $('#taskList').html('');
+        $('#completedTaskList').html('');
   
         // Render out each task with a new task template
+        Debug.log("Rendering " + taskCount + " tasks");
         for (var i = 1; i <= taskCount; i++) {
           // Fetch the task data from the blockchain
-          const task = await App.todoList.tasks(i)
-          const taskId = task[0].toNumber()
-          const taskContent = task[1]
-          const taskCompleted = task[2]
+          const task = await App.todoList.tasks(i);
+          const taskId = task[0].toNumber();
+          const taskContent = task[1];
+          const taskCompleted = task[2];
+          Debug.log("Task " + taskId + ": " + taskContent + " (completed: " + taskCompleted + ")");
   
           // Create the html for the task
-          const taskElement = $('<li class="task-item"></li>')
-          const checkbox = $(`<input type="checkbox" class="task-checkbox" name="${taskId}" ${taskCompleted ? 'checked' : ''}>`)
-          const content = $(`<span class="task-content">${taskContent}</span>`)
+          const taskElement = $('<li class="task-item"></li>');
+          const checkbox = $(`<input type="checkbox" class="task-checkbox" name="${taskId}" ${taskCompleted ? 'checked' : ''}>`);
+          const content = $(`<span class="task-content">${taskContent}</span>`);
           
           // Add event listener to checkbox
-          checkbox.on('click', App.toggleCompleted)
+          checkbox.on('click', App.toggleCompleted);
           
           // Append elements
-          taskElement.append(checkbox)
-          taskElement.append(content)
+          taskElement.append(checkbox);
+          taskElement.append(content);
           
           if (taskCompleted) {
-            taskElement.addClass('completed')
-            $('#completedTaskList').append(taskElement)
+            taskElement.addClass('completed');
+            $('#completedTaskList').append(taskElement);
           } else {
-            $('#taskList').append(taskElement)
+            $('#taskList').append(taskElement);
           }
         }
+        Debug.log("Tasks rendered successfully");
       } catch (error) {
-        console.error("Error rendering tasks:", error)
-        $('#taskList').html('<li>Could not load tasks. Please check the console for details.</li>')
+        Debug.error("Error rendering tasks: " + error.message);
+        $('#taskList').html('<li>Could not load tasks. Please check the debug area for details.</li>');
       }
     },
   
     createTask: async () => {
-      App.setLoading(true)
-      const content = $('#newTask').val()
+      Debug.log("Creating new task...");
+      App.setLoading(true);
+      const content = $('#newTask').val();
+      Debug.log("Task content: " + content);
+      
       try {
         // Check if todoList is defined
         if (!App.todoList) {
-          throw new Error("Contract not properly loaded")
+          Debug.error("Contract not properly loaded");
+          throw new Error("Contract not properly loaded");
         }
         
-        await App.todoList.createTask(content, { from: App.account })
-        $('#newTask').val('') // Clear input after adding
-        window.location.reload()
+        Debug.log("Calling createTask on contract...");
+        await App.todoList.createTask(content, { from: App.account });
+        Debug.log("Task created successfully");
+        
+        $('#newTask').val(''); // Clear input after adding
+        window.location.reload();
       } catch (error) {
-        console.error("Error creating task:", error)
-        alert("Could not create task. Please check if MetaMask is connected and the contract is deployed correctly.")
-        App.setLoading(false)
+        Debug.error("Error creating task: " + error.message);
+        alert("Could not create task. Please check the debug area for more details.");
+        App.setLoading(false);
       }
     },
   
     toggleCompleted: async (e) => {
-      App.setLoading(true)
-      const taskId = e.target.name
+      Debug.log("Toggling task completion...");
+      App.setLoading(true);
+      const taskId = e.target.name;
+      Debug.log("Task ID: " + taskId);
+      
       try {
         // Check if todoList is defined
         if (!App.todoList) {
-          throw new Error("Contract not properly loaded")
+          Debug.error("Contract not properly loaded");
+          throw new Error("Contract not properly loaded");
         }
         
-        await App.todoList.toggleCompleted(taskId, { from: App.account })
-        window.location.reload()
+        Debug.log("Calling toggleCompleted on contract...");
+        await App.todoList.toggleCompleted(taskId, { from: App.account });
+        Debug.log("Task toggled successfully");
+        
+        window.location.reload();
       } catch (error) {
-        console.error("Error toggling task:", error)
-        alert("Could not update task. Please check if MetaMask is connected.")
-        App.setLoading(false)
+        Debug.error("Error toggling task: " + error.message);
+        alert("Could not update task. Please check the debug area for more details.");
+        App.setLoading(false);
       }
     },
   
     setLoading: (boolean) => {
-      App.loading = boolean
-      const loader = $('#loader')
-      const content = $('#content')
+      App.loading = boolean;
+      const loader = $('#loader');
+      const content = $('#content');
       if (boolean) {
-        loader.show()
-        content.hide()
+        loader.show();
+        content.hide();
       } else {
-        loader.hide()
-        content.show()
+        loader.hide();
+        content.show();
       }
     }
   }
-  
-  $(() => {
-    // Modern jQuery ready function
-    $(document).ready(() => {
-      App.load()
-    })
-  })
