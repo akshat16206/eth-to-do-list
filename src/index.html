@@ -4,83 +4,160 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>MICRO PROJECT | Todo List</title>
+    <title>Todo List DApp</title>
 
-    <!-- Bootstrap -->
-    <link href="vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-
+    <!-- Custom CSS -->
     <style>
-      main {
-        margin-top: 60px;
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(to bottom, #fff, #e6e6e6);
+        min-height: 100vh;
       }
-
-      #content {
-        display: none;
+      
+      .navbar {
+        background-color: #333;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
-
-      form {
-        width: 350px;
-        margin-bottom: 10px;
+      
+      .navbar-brand {
+        font-size: 20px;
+        font-weight: 500;
+        color: white;
+        text-decoration: none;
       }
-
-      ul {
-        margin-bottom: 0px;
+      
+      .account-address {
+        font-size: 14px;
+        opacity: 0.8;
       }
-
-      #completedTaskList .content {
-        color: grey;
+      
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      
+      #loader {
+        text-align: center;
+        padding: 50px 0;
+      }
+      
+      .error-message {
+        color: #d9534f;
+        padding: 10px;
+        margin: 20px 0;
+        background-color: #f8d7da;
+        border-radius: 4px;
+      }
+      
+      .task-form {
+        margin-bottom: 30px;
+      }
+      
+      .task-input {
+        width: 100%;
+        padding: 12px 15px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      .task-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      
+      .task-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .task-checkbox {
+        margin-right: 15px;
+        width: 20px;
+        height: 20px;
+      }
+      
+      .task-content {
+        font-size: 16px;
+      }
+      
+      .completed .task-content {
+        color: #888;
         text-decoration: line-through;
+      }
+      
+      .taskTemplate {
+        display: none;
       }
     </style>
   </head>
   <body>
-    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="" target="_blank">ADITI AGRAWAL | AKSHAT GUPTA | Todo List</a>
-      <ul class="navbar-nav px-3">
-        <li class="nav-item text-nowrap d-none d-sm-none d-sm-block">
-          <small><a class="nav-link" href="#"><span id="account"></span></a></small>
-        </li>
-      </ul>
+    <nav class="navbar">
+      <a class="navbar-brand">ADITI AGRAWAL | AKSHAT GUPTA | Todo List</a>
+      <div class="account-address">
+        <span id="account"></span>
+      </div>
     </nav>
-    <div class="container-fluid">
-      <div class="row">
-        <main role="main" class="col-lg-12 d-flex justify-content-center">
-          <div id="loader" class="text-center">
-            <p class="text-center">Loading...</p>
-          </div>
-          <div id="content">
-            <form onSubmit="App.createTask(); return false;">
-              <input id="newTask" type="text" class="form-control" placeholder="Add task..." required>
-              <input type="submit" hidden="">
-            </form>
-            <ul id="taskList" class="list-unstyled">
-              <div class="taskTemplate" class="checkbox" style="display: none">
-                <label>
-                  <input type="checkbox" />
-                  <span class="content">Task content goes here...</span>
-                </label>
-              </div>
-            </ul>
-            <ul id="completedTaskList" class="list-unstyled">
-            </ul>
-          </div>
-        </main>
+    
+    <div class="container">
+      <div id="loader">
+        <p>Loading...</p>
+      </div>
+
+      <div id="error-message" class="error-message"></div>
+      
+      <div id="content">
+        <form onSubmit="App.createTask(); return false;" class="task-form">
+          <input id="newTask" type="text" class="task-input" placeholder="Add task..." required>
+        </form>
+        
+        <h4>Tasks</h4>
+        <ul id="taskList" class="task-list">
+          <li class="taskTemplate task-item">
+            <input type="checkbox" class="task-checkbox">
+            <span class="task-content">Task content goes here...</span>
+          </li>
+        </ul>
+        
+        <h4>Completed</h4>
+        <ul id="completedTaskList" class="task-list">
+          <!-- Completed tasks will be added here -->
+        </ul>
       </div>
     </div>
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="vendor/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="vendor/truffle-contract/dist/truffle-contract.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Web3.js -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.1/dist/web3.min.js"></script>
+    <!-- Truffle Contract - Updated to use a different CDN -->
+    <script src="https://cdn.jsdelivr.net/gh/trufflesuite/truffle-contract@latest/dist/truffle-contract.min.js"></script>
+    <!-- Make TruffleContract globally available -->
+    <script>
+      // Check if TruffleContract is loaded and make it globally available
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof TruffleContract !== 'undefined') {
+          window.TruffleContract = TruffleContract;
+          console.log("TruffleContract loaded successfully!");
+        } else {
+          console.error("TruffleContract failed to load!");
+          document.getElementById('error-message').textContent = 'Failed to load TruffleContract library. Please check your internet connection and try again.';
+          document.getElementById('error-message').style.display = 'block';
+        }
+      });
+    </script>
+    <!-- App.js -->
     <script src="app.js"></script>
   </body>
 </html>
