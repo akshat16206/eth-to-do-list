@@ -39,8 +39,8 @@ Before running this project, you should have the following installed:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/ethereum-todo-list.git
-cd ethereum-todo-list
+git clone https://github.com/akshat16206/eth-to-do-list.git
+cd eth-to-do-list.git
 ```
 
 ### 2. Install dependencies
